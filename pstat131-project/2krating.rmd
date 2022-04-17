@@ -1,0 +1,54 @@
+---
+title: "Ranking Prediction for NBA Players"
+author: "PSTAT 131/231 Teo Zeng"
+output:
+    html_document:
+      toc: true
+      toc_float: true
+      code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE)
+```
+
+## NBA Players Ratings Prediction
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidymodels)
+library(corrplot)
+library(ggthemes)
+library(yardstick)
+tidymodels_prefer()
+
+setwd("~/Desktop/PSTAT 131/pstat131-project")
+set.seed(125)
+```
+
+### An Overview of Dataset
+
+The dataset is downloaded as a csv file and is obtained from a [kaggle dataset by William Yu](https://www.kaggle.com/datasets/willyiamyu/nba-2k-ratings-with-real-nba-stats). 
+
+```{r}
+ratings <- read.csv(file = 'data/nba_rankings_2014-2020.csv')
+summary(ratings)
+```
+
+As we can see from the summary statistics, there are a total of 2412 observations, and there are a total of 29 predictors. The variables I will be working with are all numbers, while some are strings. So far, there  is no missing data and the dataset is considered complete.
+
+### An Overview of Your Research Questions
+
+For this dataset, we are interested in predicting the "rankings" variable, which reflects the ratings of each NBA Players. The minimum is 62 and and the maximum is 98 with a mean of 75.66. I think predictors like age, points per game, field goal, plus minus would be helpful in predicting a player's ratings, since, in general, these factors should be positively related.
+
+The goal of this model is predictive.
+
+### Proposed Project Timeline
+
+I think I will begin exploratory data analysis at the beginning of next week, and complete one model per week.
+
+### Questions and Concerns 
+
+For now there is no.
