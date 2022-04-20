@@ -184,10 +184,10 @@ Use `predict()` and `bind_cols()` to generate predictions using each of these 4 
 Which model achieved the highest accuracy on the training data?
 
 ```{r}
-bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = "prob"),
-                             predict(lda_fit, new_data = titanic_train, type = "prob"),
-                             predict(qda_fit, new_data = titanic_train, type = "prob"),
-                             predict(nb_fit, new_data = titanic_train, type = "prob"),
+bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = "class"),
+                             predict(lda_fit, new_data = titanic_train, type = "class"),
+                             predict(qda_fit, new_data = titanic_train, type = "class"),
+                             predict(nb_fit, new_data = titanic_train, type = "class"),
                              titanic_train$survived)
 colnames(bound_train_data) = c("Log fit", "LDA fit", "QDA fit",
                                "NB fit", "True")
@@ -233,7 +233,7 @@ From the data above, we can see the the **logicstic model** achieve the highest 
 Fit the model with the highest training accuracy to the **testing** data. Report the accuracy of the model on the **testing** data.
 
 ```{r}
-predict(log_fit, new_data = titanic_test, type = "prob")
+predict(log_fit, new_data = titanic_test, type = "class")
 ```
 
 ```{r}

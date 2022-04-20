@@ -1808,10 +1808,10 @@ predictions using each of these 4 models and your
 <strong>training</strong> data. Then use the <em>accuracy</em> metric to
 assess the performance of each of the four models.</p>
 <p>Which model achieved the highest accuracy on the training data?</p>
-<pre class="r"><code>bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = &quot;prob&quot;),
-                             predict(lda_fit, new_data = titanic_train, type = &quot;prob&quot;),
-                             predict(qda_fit, new_data = titanic_train, type = &quot;prob&quot;),
-                             predict(nb_fit, new_data = titanic_train, type = &quot;prob&quot;),
+<pre class="r"><code>bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = &quot;class&quot;),
+                             predict(lda_fit, new_data = titanic_train, type = &quot;class&quot;),
+                             predict(qda_fit, new_data = titanic_train, type = &quot;class&quot;),
+                             predict(nb_fit, new_data = titanic_train, type = &quot;class&quot;),
                              titanic_train$survived)
 colnames(bound_train_data) = c(&quot;Log fit&quot;, &quot;LDA fit&quot;, &quot;QDA fit&quot;,
                                &quot;NB fit&quot;, &quot;True&quot;)</code></pre>
@@ -1855,20 +1855,20 @@ model</strong> achieve the highest accuracy of 0.814</p>
 <p>Fit the model with the highest training accuracy to the
 <strong>testing</strong> data. Report the accuracy of the model on the
 <strong>testing</strong> data.</p>
-<pre class="r"><code>predict(log_fit, new_data = titanic_test, type = &quot;prob&quot;)</code></pre>
-<pre><code>## # A tibble: 268 × 2
-##    .pred_Yes .pred_No
-##        &lt;dbl&gt;    &lt;dbl&gt;
-##  1    0.933    0.0671
-##  2    0.924    0.0763
-##  3    0.119    0.881 
-##  4    0.183    0.817 
-##  5    0.230    0.770 
-##  6    0.239    0.761 
-##  7    0.120    0.880 
-##  8    0.119    0.881 
-##  9    0.0456   0.954 
-## 10    0.174    0.826 
+<pre class="r"><code>predict(log_fit, new_data = titanic_test, type = &quot;class&quot;)</code></pre>
+<pre><code>## # A tibble: 268 × 1
+##    .pred_class
+##    &lt;fct&gt;      
+##  1 Yes        
+##  2 Yes        
+##  3 No         
+##  4 No         
+##  5 No         
+##  6 No         
+##  7 No         
+##  8 No         
+##  9 No         
+## 10 No         
 ## # … with 258 more rows</code></pre>
 <pre class="r"><code>multi_metric &lt;- metric_set(accuracy, sensitivity, specificity)
 
