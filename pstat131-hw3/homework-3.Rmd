@@ -183,50 +183,56 @@ Use `predict()` and `bind_cols()` to generate predictions using each of these 4 
 
 Which model achieved the highest accuracy on the training data?
 
-```{r}
-bound_train_data = bind_cols(predict(log_fit, new_data = titanic_train, type = "class"),
-                             predict(lda_fit, new_data = titanic_train, type = "class"),
-                             predict(qda_fit, new_data = titanic_train, type = "class"),
-                             predict(nb_fit, new_data = titanic_train, type = "class"),
-                             titanic_train$survived)
-colnames(bound_train_data) = c("Log fit", "LDA fit", "QDA fit",
-                               "NB fit", "True")
-```
-
 The logistic model accuracy is
 
 ```{r}
-log_reg_acc <- augment(log_fit, new_data = titanic_train) %>%
-  accuracy(truth = survived, estimate = .pred_class)
-log_reg_acc
+titanic_testing_pred1 <- 
+  predict(log_fit, titanic_test) %>% 
+  bind_cols(predict(log_fit, titanic_test, type = "prob")) %>% 
+  bind_cols(titanic_test %>% select(survived))
+
+titanic_testing_pred1 %>%                   # test set predictions
+  accuracy(truth = survived, .pred_class)
 ```
 
 The linear discriminant analysis model accuracy is
 
 ```{r}
-lda_acc <- augment(lda_fit, new_data = titanic_train) %>%
-  accuracy(truth = survived, estimate = .pred_class)
-lda_acc
+titanic_testing_pred2 <- 
+  predict(lda_fit, titanic_test) %>% 
+  bind_cols(predict(lda_fit, titanic_test, type = "prob")) %>% 
+  bind_cols(titanic_test %>% select(survived))
+
+titanic_testing_pred2 %>%                   # test set predictions
+  accuracy(truth = survived, .pred_class)
 ```
 
 
 The quadratic discriminant analysis model accuracy is
 
 ```{r}
-qda_acc <- augment(qda_fit, new_data = titanic_train) %>%
-  accuracy(truth = survived, estimate = .pred_class)
-qda_acc
+titanic_testing_pred3 <- 
+  predict(qda_fit, titanic_test) %>% 
+  bind_cols(predict(qda_fit, titanic_test, type = "prob")) %>% 
+  bind_cols(titanic_test %>% select(survived))
+
+titanic_testing_pred3 %>%                   # test set predictions
+  accuracy(truth = survived, .pred_class)
 ```
 
 The native bayesian model has accuracy of
 
 ```{r}
-nb_acc <- augment(nb_fit, new_data = titanic_train) %>%
-  accuracy(truth = survived, estimate = .pred_class)
-nb_acc
+titanic_testing_pred4 <- 
+  predict(nb_fit, titanic_test) %>% 
+  bind_cols(predict(nb_fit, titanic_test, type = "prob")) %>% 
+  bind_cols(titanic_test %>% select(survived))
+
+titanic_testing_pred4 %>%                   # test set predictions
+  accuracy(truth = survived, .pred_class)
 ```
 
-From the data above, we can see the the **logicstic model** achieve the highest accuracy of 0.814
+From the data above, we can see the the **logicstic model** achieve the highest accuracy of 0.832
 
 ### Question 10
 
@@ -239,7 +245,7 @@ predict(log_fit, new_data = titanic_test, type = "class")
 ```{r}
 multi_metric <- metric_set(accuracy, sensitivity, specificity)
 
-augment(nb_fit, new_data = titanic_test) %>%
+augment(log_fit, new_data = titanic_test) %>%
   multi_metric(truth = survived, estimate = .pred_class)
 ```
 
@@ -249,7 +255,7 @@ Again using the **testing** data, create a confusion matrix and visualize it. Pl
 
 the confusion matrix is
 ```{r}
-augment(nb_fit, new_data =titanic_test) %>%
+augment(log_fit, new_data =titanic_test) %>%
   conf_mat(truth = survived, estimate = .pred_class) 
 ```
 
