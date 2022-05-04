@@ -108,8 +108,6 @@ log_reg <- logistic_reg() %>%
 log_wkflow <- workflow() %>% 
   add_model(log_reg) %>% 
   add_recipe(titanic_recipe)
-
-log_fit <- fit_resamples(log_wkflow, titanic_folds)
 ```
 
 ```{r}
@@ -120,8 +118,6 @@ lda_mod <- discrim_linear() %>%
 lda_wkflow <- workflow() %>% 
   add_model(lda_mod) %>% 
   add_recipe(titanic_recipe)
-
-lda_fit <- fit_resamples(lda_wkflow, titanic_folds)
 ```
 
 ```{r}
@@ -132,9 +128,10 @@ qda_mod <- discrim_quad() %>%
 qda_wkflow <- workflow() %>% 
   add_model(qda_mod) %>% 
   add_recipe(titanic_recipe)
-
-qda_fit <- fit_resamples(qda_wkflow, titanic_folds)
 ```
+
+There are 3 models and 10 folds. So a total of 30 folds will be fitted
+
 ### Question 5
 
 Fit each of the models created in Question 4 to the folded data.
@@ -164,6 +161,8 @@ collect_metrics(lda_fit)
 collect_metrics(qda_fit)
 ```
 
+As seen from the output the logistic model has the highest accuracy with acceptable standard error. thus it is the best model.
+
 ### Question 7
 
 Now that youve chosen a model, fit your chosen model to the entire training dataset (not to the folds).
@@ -187,7 +186,7 @@ titanic_testing_pred <-
 ```
 
 ```{r}
-titanic_testing_pred %>%                   # test set predictions
+titanic_testing_pred %>%
   accuracy(truth = survived, .pred_class)
 ```
 
@@ -201,10 +200,36 @@ $$
 
 where $\beta$ is the parameter that we want to estimate. Suppose that we have $n$ observations of the response, i.e. $y_{1}, ..., y_{n}$, with uncorrelated errors.
 
+
+
 ### Question 9
 
 Derive the least-squares estimate of $\beta$.
 
+sum of squares, $S S E$, where:
+
+$$
+S S E=\sum_{i=1}^{n}\left(y_{i}-\hat{y}_{i}\right)^{2}=\sum_{i=1}^{n}\left(y_{i}-\beta_{i}\right)^{2} .
+$$
+
+Since the goal is to minimize $SSE$, we take the derivative with respect to $\beta$
+
+$$
+\frac{\partial SSE}{\partial \beta}= 2 \sum_{i = 1}^{n}\left(y_{i}-\beta\right) = 0.
+$$
+
+Therefore, solving for $\beta$
+
+$$\beta = \frac{y_1+y_2+ ... + y_n}{n}$$
+
 ### Question 10
 
 Suppose that we perform leave-one-out cross-validation (LOOCV). Recall that, in LOOCV, we divide the data into $n$ folds. What is the covariance between $\hat{\beta}^{(1)}$, or the least-squares estimator of $\beta$ that we obtain by taking the first fold as a training set, and $\hat{\beta}^{(2)}$, the least-squares estimator of $\beta$ that we obtain by taking the second fold as a training set?
+
+$$
+\begin{aligned}
+&\hat{\beta}^{(1)}=\frac{\sum_{i-2}^{n} y_{i}}{n-1} \\
+&\hat{\beta}^{(2)}=\frac{y_{1}+\sum_{i-3}^{n} y_{i}}{n-1}
+\end{aligned}
+$$
+Since they have uncorrelated error, which means $\operatorname{Cov}\left(y_{i}, y_{j}\right)=\operatorname{var}\left(y_{i}\right)$ if i=j, $\operatorname{Cov}\left(y_{i}, y_{j}\right)=0$ if $i \neq j$ Thus, $\operatorname{Cov}\left(\hat{\beta}_{1}, \hat{\beta}_{2}\right)=\operatorname{Cov}\left(\frac{\sum_{i-2}^{n} y_{i}}{n-1}, \frac{y_{1}+\sum_{i-3}^{n} y_{i}}{n-1}\right)=\frac{\operatorname{Cov}\left(\sum_{i-2}^{n} y_{i}, y_{1}+\sum_{i-3}^{n} y_{i}\right)}{n-1}=\frac{(n-2) \sigma^{2}}{n-1}$
