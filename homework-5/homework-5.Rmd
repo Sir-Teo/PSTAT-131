@@ -34,6 +34,7 @@ library(ISLR2) # For the Bikeshare data set
 library(discrim)
 library(poissonreg)
 library(corrr)
+library(glmnet)
 library(klaR) # for naive bayes
 tidymodels_prefer()
 setwd("~/Desktop/PSTAT 131/homework-5")
@@ -82,8 +83,8 @@ After filtering, convert `type_1` and `legendary` to factors.
 ```{r}
 pokemon <- pokemon[pokemon$type_1 %in% c("Bug","Fire", "Grass", "Normal", "Water", "Psychic"), ]
 
-pokemon$type_1 <- factor(pokemon$type_1)
-pokemon$legendary <- factor(pokemon$legendary)
+pokemon$type_1 <- as.factor(pokemon$type_1)
+pokemon$legendary <- as.factor(pokemon$legendary)
 ```
 
 ### Exercise 3
@@ -118,6 +119,13 @@ Set up a recipe to predict `type_1` with `legendary`, `generation`, `sp_atk`, `a
 
 - Center and scale all predictors.
 
+```{r}
+pokemon_recipe <- recipe(type_1 ~ legendary + generation + sp_atk + attack + speed + defense+ hp+sp_def,pokemon_train) %>% 
+  step_dummy(all_nominal_predictors()) %>%
+  step_scale(all_predictors()) %>% 
+  step_center(all_predictors())
+```
+
 ### Exercise 5
 
 We'll be fitting and tuning an elastic net, tuning `penalty` and `mixture` (use `multinom_reg` with the `glmnet` engine).
@@ -126,23 +134,77 @@ Set up this model and workflow. Create a regular grid for `penalty` and `mixture
 
 How many total models will you be fitting when you fit these models to your folded data?
 
+```{r}
+spec <- multinom_reg(penalty = tune(), mixture = tune()) %>%
+  set_engine("glmnet") %>%
+  set_mode("classification")
+
+
+grid <- grid_regular(penalty(c(-5,5)),mixture(c(0,1)),levels = 10)
+
+wf <- workflow() %>% 
+  add_recipe(pokemon_recipe) %>% 
+  add_model(spec)
+```
+
+There are a total of 10 models fitting to 5 folds of data.
+
 ### Exercise 6
 
 Fit the models to your folded data using `tune_grid()`.
 
+```{r}
+tune_res <- tune_grid(
+  wf,
+  resamples = pokemon_folds,
+  grid = grid
+)
+autoplot(tune_res)
+```
+
 Use `autoplot()` on the results. What do you notice? Do larger or smaller values of `penalty` and `mixture` produce better accuracy and ROC AUC?
 
-### Exercise 7
+I notice that smaller lasso penalty produce better accuracy and ROC AUC. And smaller mixture produce better accuracy and ROC AUC.
+
+### Exercise 7 
 
 Use `select_best()` to choose the model that has the optimal `roc_auc`. Then use `finalize_workflow()`, `fit()`, and `augment()` to fit the model to the training set and evaluate its performance on the testing set.
+
+```{r}
+final_model = wf %>%
+finalize_workflow(select_best(tune_res, metric = "roc_auc")) %>% 
+fit(pokemon_train) %>% #fit data to training data
+augment(pokemon_test) 
+
+accuracy(final_model, truth = type_1, estimate = .pred_class) #get accuracy
+```
+
+
 
 ### Exercise 8
 
 Calculate the overall ROC AUC on the testing set.
 
+```{r}
+roc_auc(final_model, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic) 
+```
+
 Then create plots of the different ROC curves, one per level of the outcome. Also make a heat map of the confusion matrix.
 
 What do you notice? How did your model do? Which Pokemon types is the model best at predicting, and which is it worst at? Do you have any ideas why this might be?
+
+```{r}
+ autoplot(roc_curve(final_model, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic))
+```
+
+```{r}
+conf_mat(final_model, truth = type_1, estimate = .pred_class) %>% #calclate confusion matri 
+autoplot(type = "heatmap") + #autoplot with a heatmap
+theme_bw() + #change theme
+theme(axis.text.x = element_text(angle = 90, hjust=1)) #rotate x axis labels
+```
+
+I see that the overall roc_auc is only 0.602 which is not very high. The model performed badly because the accuracy is only ~.37 and the ROC AUC is only ~0.6. The model is not very good at predicting the type of pokemon. However, from the roc curve we can see that the model did well in predicting Normal pokemons, and is worst at predicting psychic, since the roc curve is below the diagonal. This might due to the fact that the Psychic pokemons are different than other pokemons, and the Normal pokemons are similar to other pokemons.
 
 ## For 231 Students
 
@@ -150,3 +212,16 @@ What do you notice? How did your model do? Which Pokemon types is the model best
 
 In the 2020-2021 season, Stephen Curry, an NBA basketball player, made 337 out of 801 three point shot attempts (42.1%). Use bootstrap resampling on a sequence of 337 1’s (makes) and 464 0’s (misses). For each bootstrap sample, compute and save the sample mean (e.g. bootstrap FG% for the player). Use 1000 bootstrap samples to plot a histogram of those values. Compute the 99% bootstrap confidence interval for Stephen Curry’s “true” end-of-season
 FG% using the quantile function in R. Print the endpoints of this interval.
+
+```{r}
+make <- array(1, 337)
+miss <- array(0, 464)
+sc_shots <- c(make, miss)
+N <- length(sc_shots)
+boot_result <- numeric(1000)
+for (i in 1:1000) {
+  boot_samp <- sample(sc_shots, replace = TRUE)
+  boot_result[i] <- mean(boot_samp)
+}
+hist(boot_result)
+```
