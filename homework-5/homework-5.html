@@ -1706,7 +1706,11 @@ pokemon_test &lt;- testing(pokemon_split)</code></pre>
 <pre><code>## [1] 318  13</code></pre>
 <pre class="r"><code>dim(pokemon_test)</code></pre>
 <pre><code>## [1] 140  13</code></pre>
-<p>So the dimension makes sense</p>
+<p>So the dimension makes sense.</p>
+<p>Stratifying the sample by type 1 is good because the number of
+samples in each cateries is different, and we want to stratify sampling
+by type_1 so that each fold can best represent the entire training set.
+this makes sure that every subgroup is represented.</p>
 <pre class="r"><code>pokemon_folds &lt;- vfold_cv(pokemon_train, v = 5,strata = type_1)</code></pre>
 </div>
 <div id="exercise-4" class="section level3">
@@ -1809,7 +1813,8 @@ pokemon. However, from the roc curve we can see that the model did well
 in predicting Normal pokemons, and is worst at predicting psychic, since
 the roc curve is below the diagonal. This might due to the fact that the
 Psychic pokemons are different than other pokemons, and the Normal
-pokemons are similar to other pokemons.</p>
+pokemons are similar to other pokemons. And there is more normal pokemon
+and less psychic pokemon.</p>
 </div>
 </div>
 <div id="for-231-students" class="section level2">
@@ -1826,11 +1831,11 @@ Curry’s “true” end-of-season FG% using the quantile function in R. Print
 the endpoints of this interval.</p>
 <pre class="r"><code>make &lt;- array(1, 337)
 miss &lt;- array(0, 464)
-sc_shots &lt;- c(make, miss)
-N &lt;- length(sc_shots)
+shots &lt;- c(make, miss)
+N &lt;- length(shots)
 boot_result &lt;- numeric(1000)
 for (i in 1:1000) {
-  boot_samp &lt;- sample(sc_shots, replace = TRUE)
+  boot_samp &lt;- sample(shots, replace = TRUE)
   boot_result[i] &lt;- mean(boot_samp)
 }
 hist(boot_result)</code></pre>

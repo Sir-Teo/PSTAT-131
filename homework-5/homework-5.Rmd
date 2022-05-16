@@ -105,7 +105,10 @@ dim(pokemon_train)
 ```{r}
 dim(pokemon_test)
 ```
-So the dimension makes sense
+
+So the dimension makes sense. 
+
+Stratifying the sample by type 1 is good because the number of samples in each cateries is different, and we want to stratify sampling by type_1 so that each fold can best represent the entire training set. this makes sure that every subgroup is represented.
 
 ```{r}
 pokemon_folds <- vfold_cv(pokemon_train, v = 5,strata = type_1)
@@ -204,7 +207,7 @@ theme_bw() + #change theme
 theme(axis.text.x = element_text(angle = 90, hjust=1)) #rotate x axis labels
 ```
 
-I see that the overall roc_auc is only 0.602 which is not very high. The model performed badly because the accuracy is only ~.37 and the ROC AUC is only ~0.6. The model is not very good at predicting the type of pokemon. However, from the roc curve we can see that the model did well in predicting Normal pokemons, and is worst at predicting psychic, since the roc curve is below the diagonal. This might due to the fact that the Psychic pokemons are different than other pokemons, and the Normal pokemons are similar to other pokemons.
+I see that the overall roc_auc is only 0.602 which is not very high. The model performed badly because the accuracy is only ~.37 and the ROC AUC is only ~0.6. The model is not very good at predicting the type of pokemon. However, from the roc curve we can see that the model did well in predicting Normal pokemons, and is worst at predicting psychic, since the roc curve is below the diagonal. This might due to the fact that the Psychic pokemons are different than other pokemons, and the Normal pokemons are similar to other pokemons. And there is more normal pokemon and less psychic pokemon.
 
 ## For 231 Students
 
@@ -216,11 +219,11 @@ FG% using the quantile function in R. Print the endpoints of this interval.
 ```{r}
 make <- array(1, 337)
 miss <- array(0, 464)
-sc_shots <- c(make, miss)
-N <- length(sc_shots)
+shots <- c(make, miss)
+N <- length(shots)
 boot_result <- numeric(1000)
 for (i in 1:1000) {
-  boot_samp <- sample(sc_shots, replace = TRUE)
+  boot_samp <- sample(shots, replace = TRUE)
   boot_result[i] <- mean(boot_samp)
 }
 hist(boot_result)
