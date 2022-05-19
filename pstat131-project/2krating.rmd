@@ -56,15 +56,28 @@ To answer this question we shall introduce another statistics: **2k ratings**. E
 
 For this case study, we **assume the fact that each player's 2k rating is unbiased.** So to answer our case study question, we will use our model to predict the rating of Westbrook, base on his performance at the current season.
 
-## Exploratory Data Analysis
-
 ### An Overview of Dataset
 
 The dataset is downloaded as a csv file and is obtained from a [kaggle dataset by William Yu](https://www.kaggle.com/datasets/willyiamyu/nba-2k-ratings-with-real-nba-stats). 
 
 While a full copy of the codebook is available in my zipped files, here are some of the key variables that are helpful to be aware of for this report:
 
-- 
+- ```PLAYER```: The name of the player
+- ```TEAM```: The name of the team
+- ```ratings```: The 2k rating of the player
+- ```GP```: The number of games played
+- ```MIN```: The number of minutes played
+- ```PTS```: The number of points scored
+- ```AST```: The number of assists
+- ```REB```: The number of rebounds
+- ```STL```: The number of steals
+- ```BLK```: The number of blocks
+- ```TOV```: The number of turnovers
+- ```PF```: The number of personal fouls
+- ```FG%```: The percentage of field goals made
+- ```3P%```: The percentage of three pointers made
+- ```FT%```: The percentage of free throws made
+
 
 ### Loading Data and Packages
 
@@ -72,23 +85,158 @@ We install some packages for data analysis.
 
 ```{r}
 library(ggplot2)
-library(tidyverse)
 library(tidymodels)
 library(corrplot)
 library(ggthemes)
 library(yardstick)
+library(tidyverse)
+library(lubridate)
+library(tidymodels)
+library(skimr)
+library(patchwork)
+library(janitor)
+
 tidymodels_prefer()
 
 setwd("~/Desktop/PSTAT 131/pstat131-project")
 set.seed(1205)
 ```
 
+Then, we read the dataset.
 
 ```{r}
 ratings <- read.csv(file = 'data/nba_rankings_2014-2020.csv')
-summary(ratings)
 ```
 
-As we can see from the summary statistics, there are a total of 2412 observations, and there are a total of 29 predictors. The variables I will be working with are all numbers, while some are strings. So far, there  is no missing data and the dataset is considered complete.
+```{r}
+dim(ratings)
+```
 
+So we see that there are 2412 observations and 32 columns in total.
+
+### Data Split
+
+The data was split in a 80% training, 20% testing split.
+
+```{r}
+ratings_split <- ratings %>% initial_split(prop = 0.8)
+
+ratings_train <- training(ratings_split)
+ratings_test <- testing(ratings_split)
+```
+
+## Exploratory Data Analysis
+
+### Teams
+
+```{r}
+ggplot(ratings, aes(TEAM)) +
+  geom_bar() +
+  labs(
+    title = "Count of NBA Players by Team",
+    x = "Teams",
+    y = "Players Count"
+  ) +
+  # We want to be able to read labels better
+  coord_flip()
+```
+
+So we see that over these years each team has about the same number of players. This makes sense because each NBA team has a minimum player number requirement each year.
+
+### Ratings
+
+Let's examine ```ratings``` closely.
+
+```{r}
+ggplot(ratings, aes(rankings)) +
+  geom_histogram(bins = 30, color = "white") +
+  facet_wrap(~SEASON, scales = "free_y") +
+  labs(
+    title = "Histogram of Player Ratings by Season"
+  )
+```
+
+
+
+```{r fig.width=10, fig.height=10}
+ggplot(ratings, aes(reorder(TEAM, rankings), rankings)) +
+  geom_boxplot(varwidth = TRUE) + 
+    facet_wrap(~SEASON, scales = "free_y") +
+  coord_flip() +
+  labs(
+    title = "Ratings in each team by Season",
+    x = "Team Name"
+  )
+```
+
+```{r}
+ratings %>% 
+  ggplot(aes(PTS, rankings)) +
+  geom_point(alpha = 0.1) +
+  stat_summary(fun = mean, colour="red", geom="line", size = 3)+
+  facet_wrap(~SEASON, scales = "free") +
+  labs(
+    title = "Rankings vs. PTS by Season"
+  )
+```
+
+```{r}
+ratings %>% 
+  ggplot(aes(REB, rankings)) +
+  geom_point(alpha = 0.1) +
+  stat_summary(fun = mean, colour="red", geom="line", size = 3)+
+  facet_wrap(~SEASON, scales = "free") +
+  labs(
+    title = "Rankings vs. PTS by Season"
+  )
+```
+
+```{r}
+ratings %>% 
+  ggplot(aes(TOV, rankings)) +
+  geom_point(alpha = 0.1) +
+  stat_summary(fun = mean, colour="red", geom="line", size = 3)+
+  facet_wrap(~SEASON, scales = "free") +
+  labs(
+    title = "Rankings vs. PTS by Season"
+  )
+```
+
+  
+```{r fig.width=10, fig.height=15}
+# want to be able to sort by frequent instructors since some instructors have been left or there are data cleaning errors
+player_frequent <- ratings %>% 
+  group_by(PLAYER) %>% 
+  count() %>% 
+  arrange(n) %>% 
+  filter(n >= 6) %>% 
+  pull(PLAYER)
+
+# store the median so we can include it in our visualization below
+median_player_classes <- ratings %>% 
+  #filter only frequent PLAYERs
+  filter(PLAYER %in% player_frequent) %>% 
+  group_by(PLAYER) %>% 
+  count() %>% 
+  ungroup() %>% 
+  # summarize the median
+  summarize(median = median(n))
+
+ratings %>% 
+  # has to be a frequent instrcutor
+  filter(PLAYER %in% player_frequent) %>% 
+  group_by(TEAM, PLAYER) %>% 
+  count() %>% 
+  ggplot(aes(fct_reorder(PLAYER, n), n, fill = TEAM)) +
+  geom_col() + 
+  coord_flip() +
+  geom_hline(yintercept=median_player_classes$median, linetype="dashed", 
+             color = "red") +
+  labs(
+    title = "Number of Classes Taught by PLAYER",
+    subtitle = "red line represents median",
+    y = "",
+    x = ""
+  )
+```
 ## Reference
