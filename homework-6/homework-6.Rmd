@@ -54,7 +54,7 @@ library(vip)
 library(janitor)
 library(randomForest)
 library(xgboost)
-setwd("~/Desktop/PSTAT 131/homework-5")
+setwd("~/Desktop/PSTAT 131/homework-6")
 set.seed(3435)
 ```
 
@@ -139,7 +139,7 @@ We can see that the best ```roc_auc``` is 0.629 and is achieved when ```cost_com
 
 Using `rpart.plot`, fit and visualize your best-performing pruned decision tree with the *training* set.
 
-```{r eval = FALSE}
+```{r}
 best_complexity <- select_best(tune_res)
 
 class_tree_final <- finalize_workflow(class_tree_wf, best_complexity)
@@ -157,7 +157,7 @@ Now set up a random forest model and workflow. Use the `ranger` engine and set `
 
 Create a regular grid with 8 levels each. You can choose plausible ranges for each hyperparameter. Note that `mtry` should not be smaller than 1 or larger than 8. **Explain why not. What type of model would `mtry = 8` represent?**
 
-```{r eval = FALSE}
+```{r}
 rand_tree_spec <- rand_forest(
   mode = "classification",
   mtry = tune(),
@@ -171,7 +171,6 @@ rand_tree_grid <- grid_regular(mtry(c(1,8)),trees(c(16,256)),min_n(c(1,8)),level
 rand_tree_wf <- workflow() %>%
   add_model(rand_tree_spec) %>%
   add_formula(type_1 ~  legendary + generation + sp_atk + attack + speed + defense+ hp+sp_def)
-
 ```
 
 ```mtry``` is An integer for the number of predictors that will be randomly sampled at each split when creating the tree models. In our model there is a total of 8 predictors so it can only be an integer between 1 and 8. ```mtry = 8``` is just a decision tree model with all the predictors selected.
@@ -185,7 +184,7 @@ rand_tree_wf <- workflow() %>%
 
 Specify `roc_auc` as a metric. Tune the model and print an `autoplot()` of the results. What do you observe? What values of the hyperparameters seem to yield the best performance?
 
-```{r eval = FALSE}
+```{r}
 library(ranger)
 rand_tune_res <- tune_grid(
   rand_tree_wf, 
@@ -276,18 +275,109 @@ best_boost_tree <- select_best(boost_tune_res)
 boost_tree_final <- finalize_workflow(boost_tree_wf, best_boost_tree)
 
 boost_tree_final_fit <- fit(boost_tree_final, data = pokemon_train)
+
 ```
 
 ```{r}
-roc_auc(best_boost_tree, truth = type_1,  .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic) 
+final_rand_model = augment(rand_tree_final_fit, new_data = pokemon_train)
+final_class_model = augment(class_tree_final_fit, new_data = pokemon_train)
+final_boost_model = augment(boost_tree_final_fit, new_data = pokemon_train)
+
+results<- bind_rows(
+  roc_auc(final_rand_model, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic),
+  roc_auc(final_class_model, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic),
+  roc_auc(final_boost_model, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic) 
+)
+results
 ```
+
+
+So we see that the best model has roc_auc of 0.799, and is achieved by the randomforest model.
 
 Print the AUC value of your best-performing model on the testing set. Print the ROC curves. Finally, create and visualize a confusion matrix heat map.
 
+```{r}
+final_rand_model_test = augment(rand_tree_final_fit, new_data = pokemon_test)
+roc_auc(final_rand_model_test, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic)
+```
+
+As we see from the above table, the model achieve a 0.659 roc_auc value on the testing set.
+
+```{r}
+conf_mat(final_rand_model_test, truth = type_1, estimate = .pred_class) %>% #calclate confusion matri 
+autoplot(type = "heatmap") + #autoplot with a heatmap
+theme_bw() + #change theme
+theme(axis.text.x = element_text(angle = 90, hjust=1)) #rotate x axis labels
+```
+
+```{r}
+ autoplot(roc_curve(final_rand_model_test, truth = type_1, .pred_Bug, .pred_Fire, .pred_Grass, .pred_Normal, .pred_Water, .pred_Psychic))
+```
+
 Which classes was your model most accurate at predicting? Which was it worst at?
+
+The model is most accurate at predicting normal and fire pokemons and is worst at predicting psychic pokemons.
 
 ## For 231 Students
 
 ### Exercise 11
 
 Using the `abalone.txt` data from previous assignments, fit and tune a random forest model to predict `age`. Use stratified cross-validation and select ranges for `mtry`, `min_n`, and `trees`. Present your results. What was the model's RMSE on your testing set?
+  
+```{r}
+abalone <- read_csv(file = "data/abalone.csv")
+abalone <- abalone %>% 
+  mutate(age = rings + 1.5)
+abalone_split <- abalone %>% initial_split(strata = age, 
+                                           prop = 0.70)
+abalone_train <- training(abalone_split)
+abalone_test <- testing(abalone_split)
+
+abalone_folds <- vfold_cv(abalone_train, v = 5,strata = age)
+
+abalone_recipe <- recipe(age ~ . , data = abalone_train) %>% 
+  step_rm(rings) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_interact(terms = ~ starts_with("type"):shucked_weight +
+                  longest_shell:diameter + 
+                  shucked_weight:shell_weight) %>% 
+  step_normalize(all_predictors())
+  
+rand_tree_spec_abalone <- rand_forest(
+  mode = "regression",
+  mtry = tune(),
+  trees = tune(),
+  min_n = tune()
+) %>%
+set_engine("ranger") 
+
+rand_tree_grid_abalone <- grid_regular(mtry(c(1,8)),trees(c(16,256)),min_n(c(1,8)),levels = 8)
+
+rand_tree_wf_abalone <- workflow() %>%
+  add_model(rand_tree_spec_abalone) %>%
+  add_recipe(abalone_recipe) 
+
+rand_tune_res_abalone <- tune_grid(
+  rand_tree_wf_abalone, 
+  resamples = abalone_folds, 
+  grid = rand_tree_grid_abalone, 
+)
+autoplot(rand_tune_res_abalone)
+```
+
+So we see that with higher number of trees, the lower the rmse and the higher the rsq. The ```mtry``` and ```min_n``` has little effect on prediction.
+
+```{r}
+best_rand_forest_abalone <- select_best(rand_tune_res_abalone)
+
+rand_tree_final_abalone <- finalize_workflow(rand_tree_wf_abalone, best_rand_forest_abalone)
+
+rand_tree_final_fit_abalone <- fit(rand_tree_final_abalone, data = abalone_train)
+
+multi_metric <- metric_set(rmse, rsq, mae)
+abalone_predict <- predict(rand_tree_final_fit_abalone, abalone_test) %>% 
+  bind_cols(abalone_test %>% select(age))
+multi_metric(abalone_predict, truth = age, estimate = .pred)
+```
+
+So the model has ```rmse``` with 2.18 on the testing set, which is acceptible since this is similar performance to the training data.
